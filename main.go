@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/shaojunda/ckb-net-monitor-log-analyzer/services"
+	"ckb-net-monitor-log-analyzer/handlers"
+	services "ckb-net-monitor-log-analyzer/services"
 
 	"gopkg.in/yaml.v3"
 )
@@ -13,10 +14,10 @@ func main() {
 	var c config
 	config := c.getConfig()
 	blockKeyWord := "compact_block:"
-	transactionKeyWord := "relay_transaction_hashes:"
+	// transactionKeyWord := "relay_transaction_hashes:"
 	blockAnalyzeService := services.NewLogAnalyzeService(blockKeyWord)
-	transactionAnalyzeService := services.NewLogAnalyzeService(transactionKeyWord)
-	blockAnalyzeService.parseLog(config.MonitorLogFilePath, handle)
+	// transactionAnalyzeService := services.NewLogAnalyzeService(transactionKeyWord)
+	blockAnalyzeService.AnalyzeLog(config.MonitorLogFilePath, handlers.Handle)
 }
 
 type config struct {
