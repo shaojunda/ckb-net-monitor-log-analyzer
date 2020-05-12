@@ -36,12 +36,10 @@ func (service *LogAnalyzeService) AnalyzeLog(filePath string, handle func(string
 		line, _, err := buf.ReadLine()
 		strLine := strings.TrimSpace(string(line))
 		handle(strLine, service.TargetLineKeyWord, results)
-		fmt.Println("results len: ", len(results))
 		saveDataToDB(service, processCount, results)
 		if err != nil {
 			if err == io.EOF {
 				if len(results) > 0 {
-					fmt.Println("final results len: ", len(results))
 					saveDataToDB(service, 1, results)
 				}
 				return nil
@@ -56,7 +54,6 @@ func saveDataToDB(service *LogAnalyzeService, processCount int, results map[stri
 		// check if 90% duration is calculated
 		return info.Durations[17] != 0
 	})
-	fmt.Println("infoCompleted len: ", len(infoCompleted))
 	if len(infoCompleted) >= processCount {
 		for _, info := range infoCompleted {
 			delete(results, info.TargetHash)

@@ -34,10 +34,10 @@ func (client *Client) BulkImport(tableName string, infos []handlers.AnalysisInfo
 	}
 
 	for _, info := range infos {
-		secondTimestamp := info.Timestamp / 1000
+		timestamp := parseTimestamp(info.Timestamp)
 		// target_hash, created_at_unixtimestamp,
 		jsonDurations, _ := json.Marshal(info.Durations)
-		_, err := stmt.Exec(time.Now(), time.Now(), info.TargetHash, secondTimestamp, jsonDurations)
+		_, err := stmt.Exec(time.Now(), time.Now(), info.TargetHash, timestamp, jsonDurations)
 		if err != nil {
 			return err
 		}
@@ -56,4 +56,13 @@ func (client *Client) BulkImport(tableName string, infos []handlers.AnalysisInfo
 	}
 
 	return nil
+}
+
+func parseTimestamp(timestamp int64) (parsedTimestamp int64) {
+	secondTimestamp := timestamp / 1000
+	parsedTime := time.Unix(secondTimestamp, 0)
+	secondsEastOfUTC := int((8 * time.Hour).Seconds())
+	beijing := time.FixedZone("Beijing Time", secondsEastOfUTC)
+	parsedTimestamp = time.Date(parsedTime.Year(), parsedTime.Month(), parsedTime.Day(), 0, 0, 0, 0, beijing).Unix()
+	return
 }
