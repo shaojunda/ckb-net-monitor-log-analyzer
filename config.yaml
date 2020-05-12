@@ -1,1 +1,6 @@
 monitor_log_file_path: run1.log
+pg_host: localhost
+pg_port: 5432
+pg_user: postgres
+pg_password: postgres
+pg_db_name: db_name
