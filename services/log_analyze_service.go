@@ -5,11 +5,14 @@ import (
 	"ckb-net-monitor-log-analyzer/handlers"
 	"ckb-net-monitor-log-analyzer/server"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 // LogAnalyzeService construct
@@ -24,6 +27,7 @@ type dbTableInfo struct {
 }
 
 type processResult struct {
+	FileName string
 	Position int64
 	Results  map[string]handlers.AnalysisInfo
 }
@@ -46,9 +50,21 @@ func (service *LogAnalyzeService) AnalyzeLog(filePath string, handle func(string
 	return readFileWithScanner(filePath, start, service.ProcessCount, service, handle, results, tableInfo)
 }
 
+func setupCloseHandler(processInfo *processResult) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r Get Interrupt Signal")
+		fmt.Println("Interrupt position: ", processInfo.Position)
+		saveProcessInfo(processInfo)
+		os.Exit(0)
+	}()
+}
+
 func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]handlers.AnalysisInfo) {
-	processIno := processResult{}
 	fileName := tableInfo.tableName + ".json"
+	processIno := processResult{FileName: fileName}
 	file, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return 0, make(map[string]handlers.AnalysisInfo)
@@ -58,19 +74,24 @@ func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]han
 	return processIno.Position, processIno.Results
 }
 
+func saveProcessInfo(processIno *processResult) {
+	jsonString, err := json.Marshal(processIno)
+	if err != nil {
+		log.Println("error: ", err)
+	}
+	_ = ioutil.WriteFile(processIno.FileName, jsonString, 0644)
+}
+
 func readFileWithScanner(filePath string, start int64, processCount int, service *LogAnalyzeService, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
 	log.Printf("--%s SCANNER, start: %d\n", tableInfo.tableName, start)
+	jsonFileName := tableInfo.tableName + ".json"
 	file, err := os.Open(filePath)
 	pos := start
+	processIno := processResult{FileName: jsonFileName, Position: pos, Results: results}
+	setupCloseHandler(&processIno)
 	defer func() {
 		file.Close()
-		processIno := processResult{Position: pos, Results: results}
-		jsonString, err := json.Marshal(processIno)
-		if err != nil {
-			log.Println("error: ", err)
-		}
-		fileName := tableInfo.tableName + ".json"
-		_ = ioutil.WriteFile(fileName, jsonString, 0644)
+		saveProcessInfo(&processIno)
 		log.Printf("%s Done.\n", tableInfo.tableName)
 	}()
 	if err != nil {
@@ -85,6 +106,7 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 	scanLines := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		advance, token, err = bufio.ScanLines(data, atEOF)
 		pos += int64(advance)
+		processIno.Position = pos
 		return
 	}
 	scanner.Split(scanLines)
@@ -135,12 +157,13 @@ func saveDataToDB(service *LogAnalyzeService, processCount int, tableInfo dbTabl
 		return info.Durations[17] != 0
 	})
 	if len(infoCompleted) >= processCount {
-		for _, info := range infoCompleted {
-			delete(results, info.TargetHash)
-		}
 		err := service.PGClient.BulkImport(tableInfo.tableName, infoCompleted, tableInfo.columnName, "created_at_unixtimestamp", "durations")
 		if err != nil {
 			log.Println(err.Error())
+		} else {
+			for _, info := range infoCompleted {
+				delete(results, info.TargetHash)
+			}
 		}
 	}
 }

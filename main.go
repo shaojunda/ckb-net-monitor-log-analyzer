@@ -33,7 +33,7 @@ func main() {
 
 type config struct {
 	MonitorLogFilePath string `yaml:"monitor_log_file_path"`
-	ProcessCount       int    `yaml: "process_count"`
+	ProcessCount       int    `yaml:"process_count"`
 	PgHost             string `yaml:"pg_host"`
 	PgPort             int    `yaml:"pg_port"`
 	PgUser             string `yaml:"pg_user"`
