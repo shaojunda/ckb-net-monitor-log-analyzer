@@ -13,3 +13,9 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Custom files
+block_propagation_delays.json
+transaction_propagation_delays.json
+run1.log
+ckb-net-monitor-log-analyzer
