@@ -12,8 +12,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 )
+
+var mapMutex = sync.RWMutex{}
 
 // LogAnalyzeService construct
 type LogAnalyzeService struct {
@@ -75,7 +78,10 @@ func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]han
 }
 
 func saveProcessInfo(processIno *processResult) {
+	mapMutex.RLock()
 	jsonString, err := json.Marshal(processIno)
+	mapMutex.RUnlock()
+
 	if err != nil {
 		log.Println("error: ", err)
 	}
@@ -107,6 +113,7 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 		advance, token, err = bufio.ScanLines(data, atEOF)
 		pos += int64(advance)
 		processIno.Position = pos
+		log.Println("pos: ", pos)
 		return
 	}
 	scanner.Split(scanLines)
@@ -152,10 +159,13 @@ func readFile(filePath string, processCount int, service *LogAnalyzeService, han
 }
 
 func saveDataToDB(service *LogAnalyzeService, processCount int, tableInfo dbTableInfo, results map[string]handlers.AnalysisInfo) {
+	mapMutex.Lock()
+	defer mapMutex.Unlock()
 	infoCompleted := filter(results, func(info handlers.AnalysisInfo) bool {
 		// check if 90% duration is calculated
 		return info.Durations[17] != 0
 	})
+
 	if len(infoCompleted) >= processCount {
 		err := service.PGClient.BulkImport(tableInfo.tableName, infoCompleted, tableInfo.columnName, "created_at_unixtimestamp", "durations")
 		if err != nil {
