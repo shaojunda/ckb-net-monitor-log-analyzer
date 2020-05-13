@@ -4,6 +4,7 @@ import (
 	"ckb-net-monitor-log-analyzer/handlers"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/lib/pq"
@@ -21,6 +22,7 @@ func NewClient(pgConn *sql.DB) *Client {
 
 // BulkImport infos to db
 func (client *Client) BulkImport(tableName string, infos []handlers.AnalysisInfo, columns ...string) error {
+	log.Println("tableName: ", tableName)
 	db := client.pgConn
 	txn, err := db.Begin()
 	if err != nil {

@@ -22,12 +22,12 @@ func main() {
 		panic(err)
 	}
 	client := server.NewClient(pgConn)
-	blockKeyWord := "compact_block:"
-	blockAnalyzeService := services.NewLogAnalyzeService(blockKeyWord, client)
-	blockAnalyzeService.AnalyzeLog(config.MonitorLogFilePath, handlers.Handle)
-	// transactionKeyWord := "relay_transaction_hashes:"
-	// transactionAnalyzeService := services.NewLogAnalyzeService(transactionKeyWord, pgConn)
-	// transactionAnalyzeService.AnalyzeLog(config.MonitorLogFilePath, handlers.Handle)
+	// blockKeyWord := "compact_block:"
+	// blockAnalyzeService := services.NewLogAnalyzeService(blockKeyWord, client)
+	// blockAnalyzeService.AnalyzeLog(config.MonitorLogFilePath, handlers.Handle)
+	transactionKeyWord := "relay_transaction_hashes:"
+	transactionAnalyzeService := services.NewLogAnalyzeService(transactionKeyWord, client)
+	transactionAnalyzeService.AnalyzeLog(config.MonitorLogFilePath, handlers.Handle)
 }
 
 type config struct {
@@ -55,6 +55,7 @@ func (c *config) getConfig() *config {
 func getConn(pgPort int, pgHost, pgUser, pgPassword, pgDBName string) (*sql.DB, error) {
 	log.Println("Connecting PostgreSQL...")
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", pgHost, pgPort, pgUser, pgPassword, pgDBName)
+	log.Println("connStr: ", connStr)
 	db, err := sql.Open("postgres", connStr)
 	// limit the number of idle connections in the pool
 	db.SetMaxIdleConns(100)
