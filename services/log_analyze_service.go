@@ -5,7 +5,6 @@ import (
 	"ckb-net-monitor-log-analyzer/handlers"
 	"ckb-net-monitor-log-analyzer/server"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -58,8 +57,8 @@ func setupCloseHandler(processInfo *processResult) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		fmt.Println("\r Get Interrupt Signal")
-		fmt.Println("Interrupt position: ", processInfo.Position)
+		log.Println("\r Get Interrupt Signal")
+		log.Println("Interrupt position: ", processInfo.Position)
 		saveProcessInfo(processInfo)
 		os.Exit(0)
 	}()
@@ -113,7 +112,6 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 		advance, token, err = bufio.ScanLines(data, atEOF)
 		pos += int64(advance)
 		processIno.Position = pos
-		log.Println("pos: ", pos)
 		return
 	}
 	scanner.Split(scanLines)
