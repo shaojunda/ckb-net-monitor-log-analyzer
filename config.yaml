@@ -1,4 +1,5 @@
 monitor_log_file_path: run1.log
+process_count: 10000
 pg_host: localhost
 pg_port: 5432
 pg_user: postgres
