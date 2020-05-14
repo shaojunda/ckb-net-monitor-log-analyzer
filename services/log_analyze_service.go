@@ -2,8 +2,6 @@ package services
 
 import (
 	"bufio"
-	"ckb-net-monitor-log-analyzer/handlers"
-	"ckb-net-monitor-log-analyzer/server"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -13,6 +11,9 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	"ckb-net-monitor-log-analyzer/handlers"
+	"ckb-net-monitor-log-analyzer/server"
 )
 
 var mapMutex = sync.RWMutex{}
@@ -72,7 +73,10 @@ func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]han
 		return 0, make(map[string]handlers.AnalysisInfo)
 	}
 
-	json.Unmarshal(file, &processIno)
+	err = json.Unmarshal(file, &processIno)
+	if err != nil {
+		panic(err)
+	}
 	return processIno.Position, processIno.Results
 }
 
@@ -96,6 +100,7 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 	setupCloseHandler(&processIno)
 	defer func() {
 		file.Close()
+
 		saveProcessInfo(&processIno)
 		log.Printf("%s Done.\n", tableInfo.tableName)
 	}()
@@ -130,7 +135,7 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 	return scanner.Err()
 }
 
-func readFile(filePath string, processCount int, service *LogAnalyzeService, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
+func _(filePath string, processCount int, service *LogAnalyzeService, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
 	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {

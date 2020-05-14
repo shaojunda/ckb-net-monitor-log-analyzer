@@ -1,11 +1,12 @@
 package server
 
 import (
-	"ckb-net-monitor-log-analyzer/handlers"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"time"
+
+	"ckb-net-monitor-log-analyzer/handlers"
 
 	"github.com/lib/pq"
 )
