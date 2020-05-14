@@ -11,8 +11,8 @@ import (
 	"sync"
 	"syscall"
 
-	"ckb-net-monitor-log-analyzer/handlers"
-	"ckb-net-monitor-log-analyzer/server"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/handlers"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/server"
 )
 
 var mapMutex = sync.RWMutex{}

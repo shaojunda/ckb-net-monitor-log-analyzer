@@ -1,4 +1,4 @@
-module ckb-net-monitor-log-analyzer
+module github.com/shaojunda/ckb-net-monitor-log-analyzer
 
 go 1.14
 

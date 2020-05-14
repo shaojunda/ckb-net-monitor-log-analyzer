@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"ckb-net-monitor-log-analyzer/handlers"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/handlers"
 
 	"github.com/lib/pq"
 )

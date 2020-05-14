@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 
-	"ckb-net-monitor-log-analyzer/handlers"
-	"ckb-net-monitor-log-analyzer/server"
-	"ckb-net-monitor-log-analyzer/services"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/handlers"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/server"
+	"github.com/shaojunda/ckb-net-monitor-log-analyzer/services"
 
 	_ "github.com/lib/pq"
 	"gopkg.in/yaml.v3"
