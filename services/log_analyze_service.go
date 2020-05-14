@@ -3,7 +3,6 @@ package services
 import (
 	"bufio"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -48,24 +47,24 @@ func (service *LogAnalyzeService) AnalyzeLog(filePath string, handle func(string
 	} else {
 		tableInfo = dbTableInfo{tableName: "transaction_propagation_delays", columnName: "tx_hash"}
 	}
-	start, results := initProcessInfo(tableInfo)
+	start, results := service.initProcessInfo(tableInfo)
 
-	return readFileWithScanner(filePath, start, service.ProcessCount, service, handle, results, tableInfo)
+	return service.readFileWithScanner(filePath, start, service.ProcessCount, handle, results, tableInfo)
 }
 
-func setupCloseHandler(processInfo *processResult) {
+func (service *LogAnalyzeService) setupCloseHandler(processInfo *processResult) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		log.Println("\r Get Interrupt Signal")
 		log.Println("Interrupt position: ", processInfo.Position)
-		saveProcessInfo(processInfo)
+		service.saveProcessInfo(processInfo)
 		os.Exit(0)
 	}()
 }
 
-func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]handlers.AnalysisInfo) {
+func (service *LogAnalyzeService) initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]handlers.AnalysisInfo) {
 	fileName := tableInfo.tableName + ".json"
 	processIno := processResult{FileName: fileName}
 	file, err := ioutil.ReadFile(fileName)
@@ -80,7 +79,7 @@ func initProcessInfo(tableInfo dbTableInfo) (start int64, results map[string]han
 	return processIno.Position, processIno.Results
 }
 
-func saveProcessInfo(processIno *processResult) {
+func (service *LogAnalyzeService) saveProcessInfo(processIno *processResult) {
 	mapMutex.RLock()
 	jsonString, err := json.Marshal(processIno)
 	mapMutex.RUnlock()
@@ -91,17 +90,17 @@ func saveProcessInfo(processIno *processResult) {
 	_ = ioutil.WriteFile(processIno.FileName, jsonString, 0644)
 }
 
-func readFileWithScanner(filePath string, start int64, processCount int, service *LogAnalyzeService, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
+func (service *LogAnalyzeService) readFileWithScanner(filePath string, start int64, processCount int, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
 	log.Printf("--%s SCANNER, start: %d\n", tableInfo.tableName, start)
 	jsonFileName := tableInfo.tableName + ".json"
 	file, err := os.Open(filePath)
 	pos := start
 	processIno := processResult{FileName: jsonFileName, Position: pos, Results: results}
-	setupCloseHandler(&processIno)
+	service.setupCloseHandler(&processIno)
 	defer func() {
 		file.Close()
 
-		saveProcessInfo(&processIno)
+		service.saveProcessInfo(&processIno)
 		log.Printf("%s Done.\n", tableInfo.tableName)
 	}()
 	if err != nil {
@@ -124,44 +123,18 @@ func readFileWithScanner(filePath string, start int64, processCount int, service
 	for scanner.Scan() {
 		strLine := strings.TrimSpace(scanner.Text())
 		handle(strLine, service.TargetLineKeyWord, results)
-		saveDataToDB(service, processCount, tableInfo, results)
+		service.saveDataToDB(processCount, tableInfo, results)
 	}
 
 	processCount = 1
 	if len(results) > 0 {
-		saveDataToDB(service, processCount, tableInfo, results)
+		service.saveDataToDB(processCount, tableInfo, results)
 	}
 
 	return scanner.Err()
 }
 
-func _(filePath string, processCount int, service *LogAnalyzeService, handle func(string, string, map[string]handlers.AnalysisInfo), results map[string]handlers.AnalysisInfo, tableInfo dbTableInfo) error {
-	file, err := os.Open(filePath)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-	buf := bufio.NewReader(file)
-
-	for {
-		line, _, err := buf.ReadLine()
-		strLine := strings.TrimSpace(string(line))
-		handle(strLine, service.TargetLineKeyWord, results)
-		saveDataToDB(service, processCount, tableInfo, results)
-		if err != nil {
-			if err == io.EOF {
-				processCount = 1
-				if len(results) > 0 {
-					saveDataToDB(service, processCount, tableInfo, results)
-				}
-				return nil
-			}
-			return err
-		}
-	}
-}
-
-func saveDataToDB(service *LogAnalyzeService, processCount int, tableInfo dbTableInfo, results map[string]handlers.AnalysisInfo) {
+func (service *LogAnalyzeService) saveDataToDB(processCount int, tableInfo dbTableInfo, results map[string]handlers.AnalysisInfo) {
 	mapMutex.Lock()
 	defer mapMutex.Unlock()
 	infoCompleted := filter(results, func(info handlers.AnalysisInfo) bool {
