@@ -19,3 +19,4 @@ block_propagation_delays.json
 transaction_propagation_delays.json
 run1.log
 ckb-net-monitor-log-analyzer
+.idea
